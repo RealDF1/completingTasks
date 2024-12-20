@@ -1,0 +1,55 @@
+.error { color: red; }
+
+.sucsess { color: green;}
+
+.review-card {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Тень для карточки отзыва */
+}
+.review-text {
+    overflow-wrap: break-word; /* Перенос длинных слов */
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ced4da;
+        border-radius: 5px;
+    background-color: #f8f9fa;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Тень для карточки отзыва */
+}
+.like-button {
+    display: flex;
+    align-items: center; /* Вертикальное выравнивание */
+    margin: 20px;
+}
+.like-count {
+    border: 1px solid #ced4da;
+    padding: 5px;
+    border-radius: 5px;
+    margin-right: 10px; /* Отступ между счетчиком и кнопкой */
+}
+
+footer {
+    height: 4cm;
+    display: flex;
+    align-items: end; /* Центрирование содержимого по вертикали */
+    justify-content: center; /* Центрирование содержимого по горизонтали */
+    text-align: center; /* Выравнивание текста по центру */
+}
+
+.nav-button {
+    border-radius: 20px; /* Скругление углов */
+    padding: 10px 20px; /* Отступы */
+    margin: 5px; /* Отступ между кнопками */
+    background-color: transparent; /* Прозрачный фон */
+    border: 0px; /* Цвет рамки */
+    color: #007bff; /* Цвет текста */
+    transition: background-color 0.3s, color 0.3s; /* Плавный переход */
+}
+
+.nav-button:hover {
+    background-color: #007bff; /* Цвет фона при наведении */
+    color: white; /* Цвет текста при наведении */
+}
