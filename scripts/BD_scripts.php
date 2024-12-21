@@ -4,7 +4,7 @@ class BD
 {
     protected mysqli|false $connect;
 
-    protected static BD $_instance;
+    protected static $_instance;
 
     public static function getInstance(): BD
     {
@@ -25,6 +25,13 @@ class BD
     {
         $list_completed_tasks_query = "SELECT * FROM `tasks_complete` WHERE id_task='" . $_SESSION['task_id'] . "';";
         return mysqli_query($this->connect, $list_completed_tasks_query);
+    }
+
+    // Добавлнеи рейтинга
+    public function setRaitingUserOnComplete($addRating)
+    {
+        $addRaitingQuery = "UPDATE `users` SET `raiting` = `raiting` + $addRating WHERE `user_id` = " . $_SESSION['user_data']['user_id'];
+        mysqli_query($this->connect, $addRaitingQuery);
     }
 
     // Добавление лайка
@@ -53,6 +60,10 @@ class BD
             $_POST["function_test"]
         );
         return mysqli_query($this->connect, $add_query);
+    }
+
+    public function getRaitingListQueary() {
+        return mysqli_query($this->connect, "SELECT * FROM users ORDER BY `raiting` DESC LIMIT 10;");
     }
 
     // Запись в таблицу при успешном прохождении

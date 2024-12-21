@@ -121,6 +121,7 @@ class QUEST
     // Тестирование написанного кода
     public function testCodeUser()
     {
+        $addRating = 5;
         // Получение данных о задании
         $result = $this->BD->get_quest($_SESSION['task_id']);
 
@@ -162,6 +163,7 @@ class QUEST
             // Проверка на авторизацию
             if (isset($_SESSION['user_data']['user_id'])) {
                 $this->BD->setCompletedCodeToTable(); // Запись правильного кода
+                $this->BD->setRaitingUserOnComplete($addRating); // Добавление рейтинга
             }
         } catch (Throwable $e) {
             $answer = "<h2 class='error'>Результат:</h2> <pre class='bg-light p-3 border'>Результат выполнения кода: <br>" . $e->getMessage() . "</pre>";

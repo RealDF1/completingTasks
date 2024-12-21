@@ -28,6 +28,11 @@
                 </li>
                 <li class="nav-item">
                     <form action="" method="POST" class="d-inline">
+                        <button type="submit" name="link" value="raiting" class="nav-link nav-button btn btn-primary">Ваш рейтинг: <?php echo "⭐".$_SESSION['user_data']['user_raiting']; ?></button>
+                    </form>
+                </li>
+                <li class="nav-item">
+                    <form action="" method="POST" class="d-inline">
                         <button type="submit" name="link" value="exit" class="nav-link nav-button btn btn-primary">Выйти</button>
                     </form>
                 </li>
