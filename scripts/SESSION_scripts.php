@@ -16,7 +16,8 @@ class SESSION
         $newUserLogin = trim(htmlspecialchars($_POST['login']));
         $newUserPass = password_hash(trim(htmlspecialchars($_POST['pass'])), PASSWORD_DEFAULT);
 
-        if (!isset($_POST['new_user'])
+        if (
+            !isset($_POST['new_user'])
             || !isset($_POST['login'])
             || !isset($_POST['pass'])
         ) {
@@ -48,7 +49,7 @@ class SESSION
     public function getPatternForCodeSpace(): string
     {
         $result = $this->BD->getPatternForCodeSpaceQuery();
-        return "function " . $result['function_name'] . "(" . $result["arguments_function"] . ") { \n \n }";
+        return "function " . $result['function_name'] . "(" . $result["arguments_function"] . "):" . $result['type'] . " {\n\n}";
     }
 
     // Старинца с заданиями
@@ -96,6 +97,7 @@ class SESSION
         $_SESSION['user_data']['user_login'] = $result_arr['user_login'];
         $_SESSION['user_data']['user_status'] = $result_arr['user_status'];
         $_SESSION['user_data']['user_data_reg'] = $result_arr['user_data_reg'];
+        $_SESSION['user_data']['user_raiting'] = $result_arr['raiting'];
         header('Location: /');
     }
 
@@ -109,6 +111,22 @@ class SESSION
     private function getVerifyPath(): string
     {
         return $_SERVER['REQUEST_URI'] === '/' ? '' : '../';
+    }
+
+    // Список рейтинга пользователей
+    public function getRaitingList()
+    {
+        $answer = "";
+        $result = $this->BD->getRaitingListQueary();
+
+        foreach ($result as $item) {
+            $answer .= "
+            <tr>
+                <td>" . $item['user_login'] . "</td>
+                <td> ⭐ " . $item['raiting'] . "</td>
+            </tr>";
+        }
+        return $answer;
     }
 
     // Функция подключения контента страницы в зависимости от выбранного пути
@@ -150,6 +168,7 @@ class SESSION
             $page_name === 'auth' => 'Авторизация',
             $page_name === 'quests' => 'Практическое задание PHP',
             $page_name === 'profile' => '',
+            $page_name === 'raiting' => 'Рейтинг',
             default => 'PHP задания',
         };
     }

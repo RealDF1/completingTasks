@@ -4,7 +4,7 @@
         <?php
 
         $Quest->setLike();
-        $Quest->listCompletedTasks();
+        echo $Quest->listCompletedTasks();
 
         ?>
     </div>

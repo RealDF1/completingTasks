@@ -19,6 +19,12 @@
     background-color: #f8f9fa;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Тень для карточки отзыва */
 }
+.themeCompletedTask {
+    border: 1px solid #ced4da;
+    padding: 5px;
+    border-radius: 5px;
+    margin-left: 10px;
+}
 .like-button {
     display: flex;
     align-items: center; /* Вертикальное выравнивание */

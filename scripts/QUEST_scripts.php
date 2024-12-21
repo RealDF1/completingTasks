@@ -51,6 +51,8 @@ class QUEST
             || !isset($_POST['task_answer'])
             || !isset($_POST['type'])
             || !isset($_POST['function_name'])
+            || !isset($_POST['function_test'])
+            || !isset($_POST['arguments_function'])
         ) {
             return;
         }
@@ -59,29 +61,43 @@ class QUEST
     }
 
     //Список готовых решений
-    public function listCompletedTasks(): void
+    public function listCompletedTasks($user_id = null): string
     {
-        $list_completed_tasks = $this->BD->getCompletedCode();
+        $listCompletedTasks = $this->BD->getCompletedCode($user_id);
+        $ans = '';
 
-        foreach ($list_completed_tasks as $task) {
-            echo "
-        <div class='review-text'>
-            <pre><code>" . $task['code'] . "</code></pre>
-        </div>
-        <div class='like-button'>
-            <span class='like-count ml-auto'>👍 " . ($task['likes'] = null ? "0" : $task['likes']) . "</span>
-            " . (!isset($_SESSION['user_data']) ? '' : "<form method='POST' action=''>
-                <input type='hidden' name='link' value='quests'>
-                <button type='submit' class='btn btn-primary' name='like' value='" . $task['id'] . "'>Лайк</button>
-            </form>") . "
-        </div>";
+        foreach ($listCompletedTasks as $task) {
+            $ans .= "
+            <div class='review-text'>
+                <pre><code>" . trim($task['code']) . "</code></pre>
+            </div>";
+
+            if (!is_null($user_id)) {
+                $ans .= "
+            <div class='like-button'>
+                <span class=''>Тема задания: </span>
+                <span class='themeCompletedTask'>".$task['name_task']."</span>
+                <span class='like-count ml-auto'>👍 " . ($task['likes'] = null ? "0" : $task['likes']) . "</span>
+            </div>";
+
+                continue;
+            }
+            $ans .= "
+            <div class='like-button'>
+                <span class='like-count ml-auto'>👍 " . ($task['likes'] = null ? "0" : $task['likes']) . "</span>
+                " . (!isset($_SESSION['user_data']) ? '' : "<form method='POST' action=''>
+                    <input type='hidden' name='link' value='quests'>
+                    <button type='submit' class='btn btn-primary' name='like' value='" . $task['id'] . "'>Лайк</button>
+                </form>") . "
+            </div>";
         }
+        return $ans;
     }
 
     //Лайк решения
     public function setLike(): void
     {
-        if (isset($_POST['like']) || isset($_SESSION['user_data'])) {
+        if (!isset($_POST['like']) || !isset($_SESSION['user_data'])) {
             return;
         }
 
@@ -121,6 +137,7 @@ class QUEST
     // Тестирование написанного кода
     public function testCodeUser()
     {
+        $addRating = 5;
         // Получение данных о задании
         $result = $this->BD->get_quest($_SESSION['task_id']);
 
@@ -162,6 +179,8 @@ class QUEST
             // Проверка на авторизацию
             if (isset($_SESSION['user_data']['user_id'])) {
                 $this->BD->setCompletedCodeToTable(); // Запись правильного кода
+                $this->BD->setRaitingUserOnComplete($addRating); // Добавление рейтинга
+                $_SESSION['user_data']['user_raiting'] += $addRating;
             }
         } catch (Throwable $e) {
             $answer = "<h2 class='error'>Результат:</h2> <pre class='bg-light p-3 border'>Результат выполнения кода: <br>" . $e->getMessage() . "</pre>";

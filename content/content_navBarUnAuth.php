@@ -23,6 +23,11 @@
                 </li>
                 <li class="nav-item">
                     <form action="" method="POST" class="d-inline">
+                        <button type="submit" name="link" value="raiting" class="nav-link nav-button btn btn-primary">Рейтинг</button>
+                    </form>
+                </li>
+                <li class="nav-item">
+                    <form action="" method="POST" class="d-inline">
                         <button type="submit" name="link" value="auth" class="nav-link nav-button btn btn-primary">Личный кабинет</button>
                     </form>
                 </li>

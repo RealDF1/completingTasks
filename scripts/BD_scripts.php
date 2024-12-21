@@ -4,7 +4,7 @@ class BD
 {
     protected mysqli|false $connect;
 
-    protected static BD $_instance;
+    protected static $_instance;
 
     public static function getInstance(): BD
     {
@@ -21,10 +21,19 @@ class BD
     }
 
     // Список правильных решений
-    public function getCompletedCode(): mysqli_result|bool
+    public function getCompletedCode($user_id = false): mysqli_result|bool
     {
-        $list_completed_tasks_query = "SELECT * FROM `tasks_complete` WHERE id_task='" . $_SESSION['task_id'] . "';";
-        return mysqli_query($this->connect, $list_completed_tasks_query);
+        $listCompletedTasksQueryTask = "SELECT * FROM `tasks_complete` WHERE id_task='" . $_SESSION['task_id'] . "';";
+        $listCompletedTasksQueryUser = "SELECT tasks_complete.*, tasks.name_task FROM tasks_complete JOIN tasks ON tasks_complete.id_task = tasks.id WHERE tasks_complete.id_user = '" . $user_id . "';";;
+
+        return mysqli_query($this->connect, $user_id ? $listCompletedTasksQueryUser : $listCompletedTasksQueryTask);
+    }
+
+    // Добавлнеи рейтинга
+    public function setRaitingUserOnComplete($addRating)
+    {
+        $addRaitingQuery = "UPDATE `users` SET `raiting` = `raiting` + $addRating WHERE `user_id` = " . $_SESSION['user_data']['user_id'];
+        mysqli_query($this->connect, $addRaitingQuery);
     }
 
     // Добавление лайка
@@ -36,9 +45,11 @@ class BD
     // Добавление задания
     public function setTaskToTable(): bool|mysqli_result
     {
-        $add_query = sprintf(
-            "INSERT INTO `tasks` (`id`, `name_task`, `body_task`, `answer_task`, `function_name`, `type`, `function_test`) VALUES (
+        $addTaskQuery = sprintf(
+            "INSERT INTO `tasks`(`id`, `name_task`, `body_task`, `answer_task`, `function_name`, `type`, `function_test`, `arguments_function`, `id_creatorUsers`) VALUES (
             NULL,
+            '%s',
+            '%s',
             '%s',
             '%s',
             '%s',
@@ -47,12 +58,20 @@ class BD
             %s);",
             $_POST['name_task'],
             $_POST['body_task'],
-            $_POST['task_answer'],
+            isset($_POST['task_answer']) ? $_POST['task_answer'] : null,
             $_POST['function_name'],
             $_POST['type'],
-            $_POST["function_test"]
+            isset($_POST["function_test"]) ? $_POST["function_test"] : null,
+            isset($_POST["arguments_function"]) ? $_POST["arguments_function"] : null,
+            $_SESSION['user_data']['user_id']
         );
-        return mysqli_query($this->connect, $add_query);
+
+        print_r($addTaskQuery);
+        return mysqli_query($this->connect, $addTaskQuery);
+    }
+
+    public function getRaitingListQueary() {
+        return mysqli_query($this->connect, "SELECT * FROM users ORDER BY `raiting` DESC LIMIT 10;");
     }
 
     // Запись в таблицу при успешном прохождении
@@ -97,11 +116,11 @@ class BD
 
     public function setNewUserOnBD($newUserLogin, $newUserPass): void
     {
-        mysqli_query($this->connect, "INSERT INTO users VALUES (null, '" . $newUserLogin . "', '" . $newUserPass . "', '" . date('Y-m-d H:i:s') . "', 'user')");
+        mysqli_query($this->connect, "INSERT INTO users VALUES (null, '" . $newUserLogin . "', '" . $newUserPass . "', '" . date('Y-m-d H:i:s') . "', 'user', 0)");
     }
 
     public function getUsersName($newUserLogin): bool|array|null
-    {
+    {   
         return mysqli_fetch_assoc(mysqli_query($this->connect, "SELECT * FROM users WHERE user_login = '" . $newUserLogin . "'"));
     }
 }
