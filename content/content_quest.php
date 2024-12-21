@@ -7,7 +7,7 @@ $Session->getHeaderTask();
     <div class="form-group m-auto" style="width: 70%">
         <textarea id="code" name="code" rows="20" class="form-control">
             <?php
-            echo isset($_POST['code']) ? $_POST['code'] : $Session->getPatternForCodeSpace();
+            echo trim(isset($_POST['code']) ? $_POST['code'] : $Session->getPatternForCodeSpace());
 
             ?>
         </textarea>

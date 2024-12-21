@@ -49,7 +49,7 @@ class SESSION
     public function getPatternForCodeSpace(): string
     {
         $result = $this->BD->getPatternForCodeSpaceQuery();
-        return "function " . $result['function_name'] . "(" . $result["arguments_function"] . ") { \n \n }";
+        return "function " . $result['function_name'] . "(" . $result["arguments_function"] . "):" . $result['type'] . " {\n\n}";
     }
 
     // Старинца с заданиями

@@ -13,11 +13,12 @@
 
                 ?>
             </p>
-            <p class="profile_content_p"><strong>Рейтинг</strong>
+            <p class="profile_content_p"><strong>Рейтинг </strong>
                 <?php
                 echo htmlspecialchars($_SESSION['user_data']['user_raiting']);
 
                 ?>
+                ⭐
             </p>
         </div>
     </div>
