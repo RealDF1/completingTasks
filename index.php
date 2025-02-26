@@ -4,8 +4,8 @@ include_once "scripts/SESSION_scripts.php";
 include_once "scripts/BD_scripts.php";
 include_once 'scripts/QUEST_scripts.php';
 
-$Quest = new QUEST();
-$Session = new SESSION();
+$Quest = new QUEST(BD::getInstance());
+$Session = new SESSION(BD::getInstance());
 
 //Отключение предупреждений
 error_reporting(1);

@@ -2,11 +2,11 @@
 
 class QUEST
 {
-    private BD $BD;
+    private BDQuests $BD;
 
-    public function __construct()
+    public function __construct(BDQuests $BD)
     {
-        $this->BD = BD::getInstance();
+        $this->BD = $BD;
     }
 
     // Вызов функции со случайным количеством аргументов
@@ -139,14 +139,23 @@ class QUEST
     {
         $addRating = 5;
         // Получение данных о задании
-        $result = $this->BD->get_quest($_SESSION['task_id']);
+        $result = $this->BD->getQuest($_SESSION['task_id']);
 
         // Форматирование для выполнения написанного пользователем кода
         $code = "<?php " . $_POST['code'] . " ?>";
 
+
+
         try {
+            // Извлекаем только вызов функции
+            if (preg_match('/function\s+'.$result['function_name'].'\s*\([^)]*\)\s*:\s*'.$result['type'].'\s*\{[^}]*\}/', $code, $matches)) {
+                $safeCode = $matches[0];
+            } else {
+                throw new ErrorException("Не найдена функция ".$result['function_name']);
+            }
+
             // Загрузка в компилятор
-            eval("?>$code");
+            eval("$safeCode");
 
             if ($result['function_test']) { // Если кол-во аргументов функции >0
                 // Форматирование данных для теста
