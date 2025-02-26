@@ -20,6 +20,9 @@
                 ?>
                 ⭐
             </p>
+            <p class="profile_content_p"><strong>
+                <a href="">Сменить пароль</a></strong>
+            </p>
         </div>
     </div>
 </section>

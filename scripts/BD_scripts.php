@@ -1,9 +1,41 @@
 <?php
 
-class BD
+interface BDQuests
 {
-    protected mysqli|false $connect;
+    public function setTaskToTable();
 
+    public function getCompletedCode();
+
+    public function setLikeQuery();
+
+    public function getQuest($task_id);
+
+    public function setCompletedCodeToTable();
+
+    public function setRaitingUserOnComplete($addRating);
+
+}
+
+interface BDSession
+{
+    public function getRaitingListQueary();
+
+    public function getUsersName($newUserLogin);
+
+    public function setNewUserOnBD($newUserLogin, $newUserPass);
+
+    public function getHeaderTaskQuery();
+
+    public function getPatternForCodeSpaceQuery();
+
+    public function getListOfTasksQuery();
+
+    public function findCreatedUser($userLogin);
+}
+
+class BD implements BDSession, BDQuests
+{
+    protected PDO $connect;
     protected static $_instance;
 
     public static function getInstance(): BD
@@ -17,110 +49,138 @@ class BD
 
     private function __construct()
     {
-        $this->connect = mysqli_connect('localhost', 'root', '', 'BKP') or die('Ошибка подключения: ' . mysqli_connect_errno());
+        try {
+            $this->connect = new PDO('mysql:host=localhost;dbname=BKP', 'root', '');
+            $this->connect->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->connect->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            die('Ошибка подключения: ' . $e->getMessage());
+        }
     }
 
     // Список правильных решений
-    public function getCompletedCode($user_id = false): mysqli_result|bool
+    public function getCompletedCode($user_id = false): array|bool
     {
-        $listCompletedTasksQueryTask = "SELECT * FROM `tasks_complete` WHERE id_task='" . $_SESSION['task_id'] . "';";
-        $listCompletedTasksQueryUser = "SELECT tasks_complete.*, tasks.name_task FROM tasks_complete JOIN tasks ON tasks_complete.id_task = tasks.id WHERE tasks_complete.id_user = '" . $user_id . "';";;
-
-        return mysqli_query($this->connect, $user_id ? $listCompletedTasksQueryUser : $listCompletedTasksQueryTask);
+        if ($user_id) {
+            $stmt = $this->connect->prepare(
+                "SELECT tasks_complete.*, tasks.name_task FROM tasks_complete JOIN tasks ON tasks_complete.id_task = tasks.id WHERE tasks_complete.id_user = :user_id"
+            );
+            $stmt->execute(['user_id' => $user_id]);
+        } else {
+            $stmt = $this->connect->prepare("SELECT * FROM `tasks_complete` WHERE id_task = :task_id");
+            $stmt->execute(['task_id' => $_SESSION['task_id']]);
+        }
+        return $stmt->fetchAll();
     }
 
-    // Добавлнеи рейтинга
-    public function setRaitingUserOnComplete($addRating)
+    // Добавление рейтинга
+    public function setRaitingUserOnComplete($addRating): void
     {
-        $addRaitingQuery = "UPDATE `users` SET `raiting` = `raiting` + $addRating WHERE `user_id` = " . $_SESSION['user_data']['user_id'];
-        mysqli_query($this->connect, $addRaitingQuery);
+        $stmt = $this->connect->prepare("UPDATE `users` SET `raiting` = `raiting` + :addRating WHERE `user_id` = :user_id");
+        $stmt->execute(['addRating' => $addRating, 'user_id' => $_SESSION['user_data']['user_id']]);
     }
 
     // Добавление лайка
-    public function setLikeQuery(): bool|mysqli_result
+    public function setLikeQuery(): bool
     {
-        return mysqli_query($this->connect, "UPDATE `tasks_complete` SET `likes`=`likes`+'1' WHERE id = '" . $_POST['like'] . "'");
+        $stmt = $this->connect->prepare("UPDATE `tasks_complete` SET `likes` = `likes` + 1 WHERE id = :like_id");
+        return $stmt->execute(['like_id' => $_POST['like']]);
     }
 
     // Добавление задания
-    public function setTaskToTable(): bool|mysqli_result
+    public function setTaskToTable(): bool
     {
-        $addTaskQuery = sprintf(
-            "INSERT INTO `tasks`(`id`, `name_task`, `body_task`, `answer_task`, `function_name`, `type`, `function_test`, `arguments_function`, `id_creatorUsers`) VALUES (
-            NULL,
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            %s);",
-            $_POST['name_task'],
-            $_POST['body_task'],
-            isset($_POST['task_answer']) ? $_POST['task_answer'] : null,
-            $_POST['function_name'],
-            $_POST['type'],
-            isset($_POST["function_test"]) ? $_POST["function_test"] : null,
-            isset($_POST["arguments_function"]) ? $_POST["arguments_function"] : null,
-            $_SESSION['user_data']['user_id']
+        $stmt = $this->connect->prepare(
+            "INSERT INTO `tasks`(`name_task`, `body_task`, `answer_task`, `function_name`, `type`, `function_test`, `arguments_function`, `id_creatorUsers`) VALUES (:name_task, :body_task, :answer_task, :function_name, :type, :function_test, :arguments_function, :id_creatorUsers)"
         );
-
-        print_r($addTaskQuery);
-        return mysqli_query($this->connect, $addTaskQuery);
+        return $stmt->execute([
+            'name_task' => $_POST['name_task'],
+            'body_task' => $_POST['body_task'],
+            'answer_task' => $_POST['task_answer'] ?? null,
+            'function_name' => $_POST['function_name'],
+            'type' => $_POST['type'],
+            'function_test' => $_POST['function_test'] ?? null,
+            'arguments_function' => $_POST['arguments_function'] ?? null,
+            'id_creatorUsers' => $_SESSION['user_data']['user_id']
+        ]);
     }
 
-    public function getRaitingListQueary() {
-        return mysqli_query($this->connect, "SELECT * FROM users ORDER BY `raiting` DESC LIMIT 10;");
+    public function getRaitingListQueary(): array|bool
+    {
+        $stmt = $this->connect->query("SELECT * FROM users ORDER BY `raiting` DESC LIMIT 10");
+        return $stmt->fetchAll();
     }
 
     // Запись в таблицу при успешном прохождении
     public function setCompletedCodeToTable(): void
     {
-        $add_query = "INSERT INTO `tasks_complete` (`id`, `code`, `likes`, `id_user`, `id_task`) VALUES (NULL, '" . $_POST['code'] . "', 0, '" . $_SESSION['user_data']['user_id'] . "', '" . $_SESSION['task_id'] . "');";
-        mysqli_query($this->connect, $add_query);
+        $stmt = $this->connect->prepare(
+            "INSERT INTO `tasks_complete` (`code`, `likes`, `id_user`, `id_task`) VALUES (:code, 0, :id_user, :id_task)"
+        );
+        $stmt->execute([
+            'code' => $_POST['code'],
+            'id_user' => $_SESSION['user_data']['user_id'],
+            'id_task' => $_SESSION['task_id']
+        ]);
     }
 
-    public function getConnection(): bool|mysqli
+    public function getConnection(): PDO
     {
         return $this->connect;
     }
 
     // Страница выбранного задания
-    public function get_quest($task_id): bool|array|null
+    public function getQuest($task_id): array|bool
     {
-        $quest_query = "SELECT * FROM tasks WHERE id = " . $task_id;
-        return mysqli_query($this->connect, $quest_query)->fetch_assoc();
+        $stmt = $this->connect->prepare("SELECT * FROM tasks WHERE id = :task_id");
+        $stmt->execute(['task_id' => $task_id]);
+        return $stmt->fetch();
     }
 
-    public function findCreatedUser($userLogin): bool|array|null
+    public function findCreatedUser($userLogin): array|bool
     {
-        return mysqli_fetch_assoc(mysqli_query($this->connect, "SELECT * FROM users WHERE user_login = '" . $userLogin . "'"));
+        $stmt = $this->connect->prepare("SELECT * FROM users WHERE user_login = :userLogin");
+        $stmt->execute(['userLogin' => $userLogin]);
+        return $stmt->fetch();
     }
 
-    public function getPatternForCodeSpaceQuery(): bool|array|null
+    public function getPatternForCodeSpaceQuery(): array|bool
     {
-        return mysqli_query($this->connect, "SELECT * FROM tasks WHERE id = " . $_SESSION['task_id'])->fetch_assoc();
+        $stmt = $this->connect->prepare("SELECT * FROM tasks WHERE id = :task_id");
+        $stmt->execute(['task_id' => $_SESSION['task_id']]);
+        return $stmt->fetch();
     }
 
-    // Старинца с заданиями
-    public function getListOfTasksQuery(): bool|mysqli_result
+    // Страница с заданиями
+    public function getListOfTasksQuery(): array|bool
     {
-        return mysqli_query($this->connect, "select * from tasks");
+        $stmt = $this->connect->query("SELECT * FROM tasks");
+        return $stmt->fetchAll();
     }
 
-    public function getHeaderTaskQuery(): bool|array|null
+    public function getHeaderTaskQuery(): array|bool
     {
-        return mysqli_query($this->connect, "SELECT * FROM tasks WHERE id = " . $_SESSION['task_id'])->fetch_assoc();
+        $stmt = $this->connect->prepare("SELECT * FROM tasks WHERE id = :task_id");
+        $stmt->execute(['task_id' => $_SESSION['task_id']]);
+        return $stmt->fetch();
     }
 
     public function setNewUserOnBD($newUserLogin, $newUserPass): void
     {
-        mysqli_query($this->connect, "INSERT INTO users VALUES (null, '" . $newUserLogin . "', '" . $newUserPass . "', '" . date('Y-m-d H:i:s') . "', 'user', 0)");
+        $stmt = $this->connect->prepare(
+            "INSERT INTO users (user_login, user_pass, created_at, role, raiting) VALUES (:user_login, :user_pass, :created_at, 'user', 0)"
+        );
+        $stmt->execute([
+            'user_login' => $newUserLogin,
+            'user_pass' => $newUserPass,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
     }
 
-    public function getUsersName($newUserLogin): bool|array|null
-    {   
-        return mysqli_fetch_assoc(mysqli_query($this->connect, "SELECT * FROM users WHERE user_login = '" . $newUserLogin . "'"));
+    public function getUsersName($newUserLogin)
+    {
+        $stmt = $this->connect->prepare("SELECT * FROM users WHERE user_login = :userLogin");
+        $stmt->execute(['userLogin' => $newUserLogin]);
+        return $stmt->fetch();
     }
 }

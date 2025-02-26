@@ -1,13 +1,14 @@
 <?php
-//asd
+
+
 class SESSION
 {
 
-    private BD $BD;
+    private BDSession $BD;
 
-    public function __construct()
+    public function __construct(BDSession $BD)
     {
-        $this->BD = BD::getInstance();
+        $this->BD = $BD;
     }
 
     // Функция регистрации пользователя
@@ -162,7 +163,7 @@ class SESSION
     public function getPageName(): string
     {
         $page_name = $_POST['link'];
-
+///
         return match ($page_name) {
             $page_name === 'about' => 'Информация о создателе',
             $page_name === 'auth' => 'Авторизация',
