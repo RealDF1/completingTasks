@@ -1,18 +1,61 @@
 <?php
 
-class QUEST
+namespace Scripts;
+
+use ErrorException;
+use Scripts\Interfaces\BDQuests;
+use Throwable;
+
+class TASK
 {
     private BDQuests $BD;
+    // Ссылка на сервис для выполнения произвольного кода
+    private $url = "http://executecode/index.php/";
 
     public function __construct(BDQuests $BD)
     {
         $this->BD = $BD;
     }
 
-    // Вызов функции со случайным количеством аргументов
-    private function callFunction(callable $function, array $args)
+    // Отправка json методом post и получние ответа
+    private function sendPostRequest($data)
     {
-        return $function(...$args);
+        // Инициализация cURL
+        $ch = curl_init($this->url);
+
+        // Настройка параметров cURL
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Возвращать ответ как строку
+        curl_setopt($ch, CURLOPT_POST, true); // Устанавливаем метод POST
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json', // Указываем, что отправляем JSON
+            'Content-Length: ' . strlen(json_encode($data))
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data)); // Отправляем данные в формате JSON
+
+        // Выполнение запроса
+        $response = curl_exec($ch);
+
+        // Проверка на ошибки
+        if (curl_errno($ch)) {
+            echo 'Ошибка cURL: ' . curl_error($ch);
+        }
+
+        // Закрытие cURL
+        curl_close($ch);
+
+        return $response; // Возвращаем ответ
+    }
+
+    // Формирование json и вызов функции отправки post запроса
+    private function callFunction($function, array $args, $functionBody): bool|string
+    {
+        $data = [
+            'functionName' => $function,
+            'arguments' => $args,
+            'functionBody' => $functionBody
+        ];
+
+        return $this->sendPostRequest($data);
     }
 
     //Подготовка к тестам поля function_test
@@ -57,7 +100,8 @@ class QUEST
             return;
         }
 
-        return $this->BD->setTaskToTable() ? "<h2 class='sucsess text-center'>Добавлено</h2>" : "<h2 class='error text-center'>Ошибка</h2>";
+        return $this->BD->setTaskToTable(
+        ) ? "<h2 class='sucsess text-center'>Добавлено</h2>" : "<h2 class='error text-center'>Ошибка</h2>";
     }
 
     //Список готовых решений
@@ -76,7 +120,7 @@ class QUEST
                 $ans .= "
             <div class='like-button'>
                 <span class=''>Тема задания: </span>
-                <span class='themeCompletedTask'>".$task['name_task']."</span>
+                <span class='themeCompletedTask'>" . $task['name_task'] . "</span>
                 <span class='like-count ml-auto'>👍 " . ($task['likes'] = null ? "0" : $task['likes']) . "</span>
             </div>";
 
@@ -135,27 +179,28 @@ class QUEST
     }
 
     // Тестирование написанного кода
-    public function testCodeUser()
+    public function testCodeUser(): string
     {
         $addRating = 5;
         // Получение данных о задании
         $result = $this->BD->getQuest($_SESSION['task_id']);
 
         // Форматирование для выполнения написанного пользователем кода
-        $code = "<?php " . $_POST['code'] . " ?>";
-
+        $code = $_POST['code'];
 
 
         try {
             // Извлекаем только вызов функции
-            if (preg_match('/function\s+'.$result['function_name'].'\s*\([^)]*\)\s*:\s*'.$result['type'].'\s*\{[^}]*\}/', $code, $matches)) {
+            if (preg_match(
+                '/function\s+' . $result['function_name'] . '\s*\([^)]*\)\s*:\s*' . $result['type'] . '\s*\{[^}]*\}/',
+                $code,
+                $matches
+            )) {
                 $safeCode = $matches[0];
             } else {
-                throw new ErrorException("Не найдена функция ".$result['function_name']);
+                throw new ErrorException("Не найдена функция " . $result['function_name']);
             }
-
-            // Загрузка в компилятор
-            eval("$safeCode");
+            //eval($safeCode);
 
             if ($result['function_test']) { // Если кол-во аргументов функции >0
                 // Форматирование данных для теста
@@ -165,37 +210,68 @@ class QUEST
                 //          ];
                 $tests = $this->getArrayForTesting($result["function_test"]);
 
+
                 foreach ($tests as $test) {
-                    if ($this->callFunction($result['function_name'], $test['arguments']) != $test['result']) {
+                    if ($this->callFunction(
+                            $result['function_name'],
+                            $test['arguments'],
+                            $safeCode
+                        ) != $test['result']) {
                         throw new ErrorException(
                             'Дополнительные тесты не пройдены! Функция работает не правильно, при значениях ' . print_r(
                                 $test['arguments'],
                                 true
                             ) . 'правильный результат ' . $test['result'] . ". Результат работы функции равен: " . $this->callFunction(
                                 $result['function_name'],
-                                $test['arguments']
+                                $test['arguments'],
+                                $safeCode
                             )
                         );
                     }
                 }
             } elseif ($result['function_name']() != $result['answer_task']) { // Если кол-во аргументов функции 0
                 throw new ErrorException(
-                    'Дополнительные тесты не пройдены! Функция работает не правильно. Результат функции: ' . $result['function_name']()
+                    'Дополнительные тесты не пройдены! Функция работает не правильно. Результат функции: ' . $result['function_name'](
+                    )
                 );
             }
             $answer = "<h2 class='sucsess' style='color: green;'>Успех!</h2> <pre class='bg-light p-3 border'>Функция работает корректно! <br><br>Также пройдены дополнительные тесты</pre>";
 
             // Проверка на авторизацию
             if (isset($_SESSION['user_data']['user_id'])) {
-                $this->BD->setCompletedCodeToTable(); // Запись правильного кода
+                //$this->BD->setCompletedCodeToTable(); // Запись правильного кода
                 $this->BD->setRaitingUserOnComplete($addRating); // Добавление рейтинга
                 $_SESSION['user_data']['user_raiting'] += $addRating;
             }
         } catch (Throwable $e) {
-            $answer = "<h2 class='error'>Результат:</h2> <pre class='bg-light p-3 border'>Результат выполнения кода: <br>" . $e->getMessage() . "</pre>";
+            $answer = "<h2 class='error'>Результат:</h2> <pre class='bg-light p-3 border'>Результат выполнения кода: <br>" . $e->getMessage(
+                ) . "</pre>";
         }
 
         // Вывод ответа
         return "<div class='m-auto' style='width: 70%'>" . $answer . "</div>";
+    }
+
+    public function runCodeUser($safeCode, $functionName): mixed
+    {
+        $url = 'http://0.0.0.0:8080/script/execute.php'; // Укажите IP вашего контейнера
+
+        $data = [
+            'code' => $safeCode,
+            'function' => $functionName
+        ];
+
+        $options = [
+            'http' => [
+                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method' => 'POST',
+                'content' => http_build_query($data),
+            ],
+        ];
+
+        $context = stream_context_create($options);
+        $result = file_get_contents($url, false, $context);
+
+        return json_decode($result, true);
     }
 }
