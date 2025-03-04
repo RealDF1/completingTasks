@@ -7,7 +7,7 @@
   - Просмтор пройденных заданий
 
 Функционал для тестрования пользовательских функций вынесен в отдельный приложение, релезована функция POST запроса для обмена данных
-executecode
+executecode (https://github.com/RealDF1/executeCode?tab=readme-ov-file)
 POST : 
 {
     "functionName": "",
