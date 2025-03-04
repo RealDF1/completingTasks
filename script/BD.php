@@ -1,44 +1,18 @@
 <?php
 
-interface BDQuests
-{
-    public function setTaskToTable();
+namespace Scripts;
 
-    public function getCompletedCode();
+use PDO;
+use PDOException;
+use Scripts\Interfaces\BDQuests;
+use Scripts\Interfaces\BDSession;
 
-    public function setLikeQuery();
-
-    public function getQuest($task_id);
-
-    public function setCompletedCodeToTable();
-
-    public function setRaitingUserOnComplete($addRating);
-
-}
-
-interface BDSession
-{
-    public function getRaitingListQueary();
-
-    public function getUsersName($newUserLogin);
-
-    public function setNewUserOnBD($newUserLogin, $newUserPass);
-
-    public function getHeaderTaskQuery();
-
-    public function getPatternForCodeSpaceQuery();
-
-    public function getListOfTasksQuery();
-
-    public function findCreatedUser($userLogin);
-}
-
-class BD implements BDSession, BDQuests
+class BD implements BDQuests, BDSession
 {
     protected PDO $connect;
     protected static $_instance;
 
-    public static function getInstance(): BD
+    public static function getInstance()
     {
         if (self::$_instance === null) {
             self::$_instance = new self();
@@ -50,7 +24,7 @@ class BD implements BDSession, BDQuests
     private function __construct()
     {
         try {
-            $this->connect = new PDO('mysql:host=localhost;dbname=BKP', 'root', '');
+            $this->connect = new PDO('mysql:host=localhost;dbname=comTasksProject', 'root', '');
             $this->connect->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->connect->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -168,7 +142,7 @@ class BD implements BDSession, BDQuests
     public function setNewUserOnBD($newUserLogin, $newUserPass): void
     {
         $stmt = $this->connect->prepare(
-            "INSERT INTO users (user_login, user_pass, created_at, role, raiting) VALUES (:user_login, :user_pass, :created_at, 'user', 0)"
+            "INSERT INTO users (user_login, user_pass, user_data_reg, user_status, raiting) VALUES (:user_login, :user_pass, :created_at, 'user', 0)"
         );
         $stmt->execute([
             'user_login' => $newUserLogin,

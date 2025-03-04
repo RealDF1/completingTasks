@@ -1,5 +1,8 @@
 <?php
 
+namespace Scripts;
+
+use Scripts\Interfaces\BDSession;
 
 class SESSION
 {
@@ -163,7 +166,7 @@ class SESSION
     public function getPageName(): string
     {
         $page_name = $_POST['link'];
-///
+
         return match ($page_name) {
             $page_name === 'about' => 'Информация о создателе',
             $page_name === 'auth' => 'Авторизация',
